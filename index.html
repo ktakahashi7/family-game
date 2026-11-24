@@ -89,11 +89,11 @@ th:nth-child(2),td:nth-child(2){text-align:left}
 .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:8}
 .confetti i{position:absolute;top:-20px;width:10px;height:16px;border-radius:2px;animation:fall 2.6s linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
-.chests{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:8px 0 16px}
-.chest{grid-column:span 2;aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:20px;padding:8px;color:var(--ink);display:grid;place-items:center;position:relative}
-.chest:nth-child(4){grid-column:2/span 2}.chest:nth-child(5){grid-column:4/span 2}
+.chests{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:8px 0 16px}
+.chest{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:4px;min-height:0;color:var(--ink);display:grid;place-items:center;position:relative}
 .chest svg{width:100%;height:100%}
-.chest .val{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(22px,7vw,34px);font-weight:800;color:#2a1a14}
+.chest .val{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(18px,5.5vw,28px);font-weight:800;color:#2a1a14}
+.chest .again{background:var(--teal);color:#fff;border-radius:10px;padding:2px 6px;font-size:clamp(12px,3.4vw,16px);line-height:1.2}
 .chest.pop{animation:pop .45s}
 .chest:disabled{opacity:1}
 .chest.pick{border-color:var(--red);box-shadow:0 0 0 3px var(--red)}
@@ -167,7 +167,7 @@ th:nth-child(2),td:nth-child(2){text-align:left}
 <!-- ④ 宝箱ゲーム -->
 <section id="treasure" hidden>
   <h2>宝箱ゲーム</h2>
-  <p class="lead">5個の宝箱から3個を選ぼう。中身は50点・30点・20点・10点、そして爆弾（−30点）！ 3個目の中身は結果発表で。</p>
+  <p class="lead">8個の宝箱から3個を選ぼう。中身は50点・30点・20点・10点・0点が2つ・爆弾（−30点）・「もう一回」！ 3個目の中身は結果発表で。</p>
   <div class="chests" id="chests"></div>
   <p class="msg" id="tMsg"></p>
 </section>
@@ -262,6 +262,8 @@ const SFX = {
   creak() { this.tone(180, 0.25, { type: 'sawtooth', vol: 0.06, to: 320 }); },
   coin(v) { const k = v >= 50 ? 4 : v >= 30 ? 3 : 2; for (let i = 0; i < k; i++) { this.tone(1976, 0.08, { type: 'square', vol: 0.08, at: 0.25 + i * 0.12 }); this.tone(2637, 0.25, { type: 'square', vol: 0.08, at: 0.31 + i * 0.12 }); } },
   boom() { this.noise(0.9, { vol: 0.8, freq: 900, to: 60, type: 'lowpass', q: 1, at: 0.2 }); this.tone(120, 0.6, { type: 'sine', vol: 0.5, to: 40, at: 0.2 }); },
+  again() { this.notes([523, 784, 1047, 1568], { type: 'square', vol: 0.1, gap: 0.08, len: 0.15 }); },
+  empty() { this.tone(300, 0.3, { type: 'triangle', vol: 0.15, at: 0.2, to: 250 }); },
   mystery() { this.notes([392, 466, 554, 659], { type: 'sine', gap: 0.14, len: 0.35, vol: 0.15 }); },
   bump(v) { this.tone(220, 0.05, { type: 'triangle', vol: Math.min(0.3, v / 250) }); },
   fall() { this.tone(900, 0.5, { type: 'sine', vol: 0.2, to: 120 }); },
@@ -296,7 +298,7 @@ const GAMES = [
     icon: '<svg viewBox="0 0 56 56"><rect width="56" height="56" rx="16" fill="var(--teal)"/><circle cx="28" cy="28" r="15" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="80 20" stroke-linecap="round"/></svg>' },
   { id: 'time', name: 'タイムアタック', desc: '見えない15秒を当てる',
     icon: '<svg viewBox="0 0 56 56"><rect width="56" height="56" rx="16" fill="var(--red)"/><circle cx="28" cy="31" r="15" fill="#fff"/><rect x="24" y="8" width="8" height="6" rx="2" fill="#fff"/><path d="M28 31V22" stroke="#2a1a14" stroke-width="4" stroke-linecap="round"/></svg>' },
-  { id: 'treasure', name: '宝箱ゲーム', desc: '5個から3個えらぶ。爆弾に注意',
+  { id: 'treasure', name: '宝箱ゲーム', desc: '8個から3個えらぶ。爆弾に注意',
     icon: '<svg viewBox="0 0 56 56"><rect width="56" height="56" rx="16" fill="var(--sun)"/><rect x="10" y="24" width="36" height="22" rx="3" fill="#9a5a2a"/><path d="M10 26q0-14 18-14t18 14z" fill="#b8703a"/><rect x="10" y="24" width="36" height="4" fill="#5c3415"/><rect x="24" y="22" width="8" height="10" rx="2" fill="#ffe08a" stroke="#5c3415" stroke-width="2"/></svg>' },
   { id: 'ball', name: '玉転がし', desc: 'スマホを傾けて30秒以内にゴール',
     icon: '<svg viewBox="0 0 56 56"><rect width="56" height="56" rx="16" fill="#2a1a14"/><rect x="8" y="8" width="40" height="7" fill="#fff" opacity=".85"/><circle cx="20" cy="30" r="5" fill="#000" stroke="#7a6458" stroke-width="2"/><circle cx="33" cy="41" r="7" fill="var(--red)"/><circle cx="31" cy="39" r="2" fill="#fff" opacity=".7"/></svg>' }
@@ -497,26 +499,31 @@ const OPEN = '<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy=
 const BOMB = '<svg viewBox="0 0 60 60" style="width:56%;height:56%"><circle cx="27" cy="35" r="19" fill="#222"/><circle cx="21" cy="29" r="5" fill="#fff" opacity=".35"/><rect x="34" y="12" width="9" height="9" rx="2" transform="rotate(35 38 16)" fill="#555"/><path d="M42 12q6-8 12-4" fill="none" stroke="#c9a25e" stroke-width="3"/><circle cx="54" cy="7" r="4" fill="#ffc22e"/></svg>';
 function renderChests() {
   if (!cur.treasure) { cur.treasure = { pending: true, boxes: Scoring.shuffleTreasure(), picks: [] }; save(); }
-  const t = cur.treasure;
+  const t = cur.treasure, cnt = Scoring.counted(t), hidden = cnt.length >= 3 ? cnt[2] : -1, done = cnt.length >= 3;
   $('chests').innerHTML = t.boxes.map((v, i) => {
-    const k = t.picks.indexOf(i);
-    if (k === 0 || k === 1) return `<button class="chest pick" disabled aria-label="${v}">${OPEN}<span class="val">${v < 0 ? BOMB : `<span style="background:var(--sun);border-radius:999px;padding:2px 12px;box-shadow:0 3px 0 #d99a00">${v}</span>`}</span></button>`;
-    if (k === 2) return `<button class="chest pick" disabled aria-label="3個目">${CHEST}<span class="val"><span style="background:var(--red);color:#fff;border-radius:50%;width:1.6em;height:1.6em;display:grid;place-items:center">？</span></span></button>`;
-    return `<button class="chest" data-box="${i}" ${t.picks.length >= 3 ? 'disabled' : ''} aria-label="宝箱${i + 1}">${CHEST}</button>`;
+    if (i === hidden) return `<button class="chest pick" disabled aria-label="3個目">${CHEST}<span class="val"><span style="background:var(--red);color:#fff;border-radius:50%;width:1.6em;height:1.6em;display:grid;place-items:center">？</span></span></button>`;
+    if (t.picks.includes(i)) {
+      const face = v === 'again' ? '<span class="again">もう<br>一回</span>' : v < 0 ? BOMB : `<span style="background:var(--sun);border-radius:999px;padding:0 10px;box-shadow:0 3px 0 #d99a00">${v}</span>`;
+      return `<button class="chest pick" disabled aria-label="${v === 'again' ? 'もう一回' : v}">${OPEN}<span class="val">${face}</span></button>`;
+    }
+    return `<button class="chest" data-box="${i}" ${done ? 'disabled' : ''} aria-label="宝箱${i + 1}">${CHEST}</button>`;
   }).join('');
-  const n = t.picks.length;
+  const n = cnt.length, lastAgain = t.picks.length && t.boxes[t.picks[t.picks.length - 1]] === 'again';
   $('tMsg').className = 'msg';
-  $('tMsg').textContent = n === 0 ? '1個目をえらんでね' : n === 1 ? '2個目をえらんでね' : n === 2 ? 'いよいよ3個目！ 中身は結果発表まで…' : '';
+  $('tMsg').textContent = done ? '' : (lastAgain ? 'もう一回！ ' : '') + (n === 0 ? '1個目をえらんでね' : n === 1 ? '2個目をえらんでね' : 'いよいよ3個目！ 中身は結果発表まで…');
 }
 $('chests').addEventListener('click', (e) => {
   const b = e.target.closest('[data-box]'); if (!b || b.disabled) return;
-  const t = cur.treasure; if (t.picks.length >= 3) return;
-  t.picks.push(+b.dataset.box); save(); renderChests();
-  const got = t.boxes[+b.dataset.box];
-  if (t.picks.length < 3) { SFX.creak(); if (got < 0) SFX.boom(); else SFX.coin(got); } else SFX.mystery();
-  const el = $('chests').children[+b.dataset.box]; el.classList.add('pop');
-  if (t.picks.length === 3) {
-    t.pending = false; t.score = t.picks.reduce((a, i) => a + t.boxes[i], 0); save();
+  const t = cur.treasure; if (Scoring.counted(t).length >= 3) return;
+  const i = +b.dataset.box, got = t.boxes[i];
+  t.picks.push(i); save(); renderChests();
+  const n = Scoring.counted(t).length;
+  if (got === 'again') { SFX.creak(); SFX.again(); }
+  else if (n < 3) { SFX.creak(); if (got < 0) SFX.boom(); else if (got > 0) SFX.coin(got); else SFX.empty(); }
+  else SFX.mystery();
+  $('chests').children[i].classList.add('pop');
+  if (n === 3) {
+    t.pending = false; t.score = Scoring.treasureScore(t); save();
     setTimeout(finish, 1300);
   }
 });
@@ -525,8 +532,8 @@ $('chests').addEventListener('click', (e) => {
 // コース（横100 × 縦133 の単位）。手前（下）からスタートして向こう（上）のゴールへ
 const C = {
   W: 100, H: 133, start: { x: 50, y: 122 }, goalY: 12, r: 4, limit: 30000,
-  walls: [[0, 95, 56, 4], [44, 62, 56, 4], [0, 30, 56, 4]],
-  holes: [[40, 80, 4.5], [62, 46, 4.5], [32, 18, 4.5]],
+  walls: [[0, 95, 60, 4], [40, 62, 60, 4], [0, 30, 60, 4], [62, 104, 8, 8]],
+  holes: [[40, 80, 5], [70, 77, 4.5], [62, 46, 5], [25, 43, 4.5], [32, 18, 5], [70, 15, 4.5]],
   // 穴に落ちたら、通過した中で一番先の旗（チェックポイント）から再開
   checks: [{ y: 93, x: 80, cy: 88 }, { y: 60, x: 20, cy: 56 }, { y: 28, x: 80, cy: 24 }]
 };
@@ -620,11 +627,11 @@ function stepBall(now) {
     B.fall += dt * 3;
     if (B.fall >= 1) { const k = C.checks[B.cp]; B.x = k ? k.x : C.start.x; B.y = k ? k.cy : C.start.y; B.vx = B.vy = 0; B.fall = 0; }
   } else {
-    const t = readTilt(), A = 200; // 小さな子でも操作しやすいよう、ゆっくりめ
-    B.vx = (B.vx + t.x * A * dt) * 0.985; B.vy = (B.vy + t.y * A * dt) * 0.985;
-    const sp = Math.hypot(B.vx, B.vy); if (sp > 85) { B.vx *= 85 / sp; B.vy *= 85 / sp; }
+    const t = readTilt(), A = 270; // 中くらいの速さ
+    B.vx = (B.vx + t.x * A * dt) * 0.988; B.vy = (B.vy + t.y * A * dt) * 0.988;
+    const sp = Math.hypot(B.vx, B.vy); if (sp > 105) { B.vx *= 105 / sp; B.vy *= 105 / sp; }
     B.x += B.vx * dt; B.y += B.vy * dt; hitWalls();
-    for (const [x, y, rr] of C.holes) if (Math.hypot(B.x - x, B.y - y) < rr * 0.6) { B.fall = 0.01; B.x = x; B.y = y; SFX.fall(); if (navigator.vibrate) navigator.vibrate(120); break; }
+    for (const [x, y, rr] of C.holes) if (Math.hypot(B.x - x, B.y - y) < rr * 0.7) { B.fall = 0.01; B.x = x; B.y = y; SFX.fall(); if (navigator.vibrate) navigator.vibrate(120); break; }
     C.checks.forEach((k, i) => { if (i > B.cp && B.y < k.y) { B.cp = i; SFX.check(); } });
     if (B.y < C.goalY) {
       B.state = 'end'; SFX.goal(); const cs = Math.floor(el / 10);
@@ -640,7 +647,7 @@ function startResults() {
   state.players.forEach((p) => {
     if (p.time && p.time.pending) p.time = { score: 0, sec: null };
     if (p.ball && p.ball.pending) p.ball = { cs: null, timeover: true };
-    if (p.treasure && p.treasure.pending) { const v = p.treasure.picks.map((i) => p.treasure.boxes[i]); p.treasure = { ...p.treasure, pending: false, score: v.reduce((a, b) => a + b, 0) }; }
+    if (p.treasure && p.treasure.pending) p.treasure = { ...p.treasure, pending: false, score: Scoring.treasureScore(p.treasure) };
   });
   save(); calcBall();
   const sorted = [...state.players].sort((a, b) => total(b) - total(a));
@@ -651,7 +658,7 @@ function startResults() {
   $('finalTable').hidden = true; $('resTitle').textContent = '結果発表！';
   show('results');
 }
-const bar = (cls, lab, v, max, extra) => `<div class="bar ${cls}"><div class="lab"><span>${lab}</span><span>${v}点${extra}</span></div><div class="tr"><div class="fl" data-w="${Math.min(100, (v / max) * 100)}"></div></div></div>`;
+const bar = (cls, lab, v, max, extra) => `<div class="bar ${cls}"><div class="lab"><span>${lab}</span><span>${v}点${extra}</span></div><div class="tr"><div class="fl" data-w="${Math.max(0, Math.min(100, (v / max) * 100))}"></div></div></div>`;
 let revealing = false;
 $('nextReveal').addEventListener('click', () => {
   if (step >= order.length || revealing) return;
@@ -665,9 +672,9 @@ function revealOne() {
   const p = order[step], gold = p._rank === 1;
   SFX.tada(gold);
   const sec = p.time && p.time.sec != null ? `（${p.time.sec.toFixed(2)}秒）` : '';
-  const tv = p.treasure ? p.treasure.picks.map((i) => p.treasure.boxes[i]) : null;
-  const tl = (v) => (v < 0 ? '爆弾' : v);
-  const tre = tv ? `（${tl(tv[0])}・${tl(tv[1])}・<b style="color:var(--red)">${tl(tv[2])}</b>）` : '';
+  const tl = (v) => (v === 'again' ? 'もう一回' : v < 0 ? '爆弾' : v);
+  const tp = p.treasure ? p.treasure.picks : [], tlast = tp.length ? tp[tp.length - 1] : -1;
+  const tre = tp.length ? `（${tp.map((i) => (i === tlast ? `<b style="color:var(--red)">${tl(p.treasure.boxes[i])}</b>` : tl(p.treasure.boxes[i]))).join('・')}）` : '';
   const bm = ballMap[p.id] || {}, bl = p.ball ? (p.ball.cs != null ? `（${(p.ball.cs / 100).toFixed(2)}秒・${bm.rank}位）` : '（タイムオーバー）') : '';
   $('revealCard').innerHTML = `<div class="rank ${gold ? 'gold' : ''}">${p._rank}位</div>
     <p class="who">${esc(p.name)}</p>

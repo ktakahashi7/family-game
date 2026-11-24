@@ -11,7 +11,7 @@
     const jaw = clamp(g('jawOpen') / 0.4);
     const frown = (g('mouthFrownLeft') + g('mouthFrownRight')) / 2;
     const raw = 0.65 * smile + 0.15 * cheek + 0.1 * eye + 0.1 * jaw * smile - 0.3 * frown;
-    return Math.round(100 * Math.pow(clamp(raw), 0.85));
+    return Math.round(100 * Math.pow(clamp(raw), 1.5)); // 厳しめ：思いっきりの笑顔でないと高得点にならない
   }
 
   /* ② まん丸：線を等間隔に並べ直し → 最小二乗で円を当てはめ → 半径のばらつき・一周したか・閉じているか */
@@ -65,8 +65,8 @@
     }
     const coverage = clamp(Math.abs(swept) / (2 * Math.PI));
     const gap = Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y) / mean;
-    const closure = coverage >= 0.999 ? 1 : 1 - 0.3 * clamp(gap);
-    const roundness = clamp(1 - cv * 3.5);
+    const closure = coverage >= 0.999 ? 1 : 1 - 0.5 * clamp(gap);
+    const roundness = clamp(1 - cv * 6); // 厳しめ：少しのゆがみでも減点
     const score = Math.round(100 * roundness * coverage * coverage * closure);
     return { ok: true, score, circle: c, cv, coverage, gap };
   }
@@ -81,8 +81,10 @@
     return 0;
   }
 
-  /* ④ 宝箱：中身をシャッフル */
-  const TREASURE = [50, 30, 20, 10, -30];
+  /* ④ 宝箱：8箱の中身をシャッフル（'again' は「もう一回」） */
+  const TREASURE = [50, 30, 20, 10, 0, 0, -30, 'again'];
+  const counted = (t) => t.picks.filter((i) => t.boxes[i] !== 'again');
+  const treasureScore = (t) => counted(t).reduce((a, i) => a + t.boxes[i], 0);
   function shuffleTreasure(rand = Math.random) {
     const a = TREASURE.slice();
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -103,7 +105,7 @@
     return out;
   }
 
-  const api = { smileScore, circleScore, timeScore, shuffleTreasure, ballPoints, TREASURE };
+  const api = { smileScore, circleScore, timeScore, shuffleTreasure, ballPoints, TREASURE, counted, treasureScore };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Scoring = api;
 })(this);
